@@ -1,5 +1,6 @@
 altair
-pandas
+jupyter
 matplotlib
+pandas
 requests
 seaborn
