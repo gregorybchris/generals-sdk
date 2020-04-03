@@ -31,7 +31,7 @@ class GameFactory:
     def get_games(self,
                   game_type=None,
                   time_sort=True,
-                  filter_untracked_players=True,
+                  filter_untracked_players=False,
                   strict_filter=True,
                   use_cache=True):
         # Get a unique list of games over all tracked players
@@ -60,7 +60,10 @@ class GameFactory:
         return self._games
 
     @classmethod
-    def _filter_untracked(cls, games, player_names, strict_filter=True):
+    def _filter_untracked(cls,
+                          games,
+                          player_names,
+                          strict_filter=True):
         """
         Get a list of games where the rankings only include players from a given set.
 
