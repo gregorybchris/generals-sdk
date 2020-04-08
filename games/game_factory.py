@@ -20,25 +20,34 @@ class _GameConstants:
 class GameFactory:
     DEFAULT_PAGE_SIZE = 100
     DEFAULT_MAX_PAGES = 100
+    DEFAULT_CACHE_DIR = './cache/games'
     REPLAY_URL = 'http://generals.io/api/replaysForUsername'
 
-    def __init__(self, players, page_size=DEFAULT_PAGE_SIZE, max_pages=DEFAULT_MAX_PAGES):
+    def __init__(self,
+                 players,
+                 page_size=DEFAULT_PAGE_SIZE,
+                 max_pages=DEFAULT_MAX_PAGES,
+                 use_cache=True,
+                 cache_dir=DEFAULT_CACHE_DIR):
         self._page_size = page_size
         self._max_pages = max_pages
+        self._use_cache = use_cache
+        self._cache_dir = cache_dir
         self._players = {username: player for player in players for username in player.usernames}
         self._games = None
 
     def get_games(self,
                   game_type=None,
                   time_sort=True,
-                  filter_untracked_players=False,
-                  strict_filter=True,
-                  use_cache=True):
+                  all_in_game_players_tracked=False,
+                  all_tracked_players_in_game=False,
+                  filter_untracked=False):
         # Get a unique list of games over all tracked players
         game_map = dict()
         for username in self._players:
-            player_game_dicts = GameFactory._pull_replays(username, self._page_size,
-                                                          self._max_pages, use_cache)
+            player_game_dicts = GameFactory._pull_games(username,
+                                                        self._page_size, self._max_pages,
+                                                        self._use_cache, self._cache_dir)
             for game_dict in player_game_dicts:
                 game = self._create_game(game_dict)
                 game_map[game.game_id] = game
@@ -49,10 +58,12 @@ class GameFactory:
             self._games = [game for game in game_map.values() if game.game_type == game_type]
 
         # Filter out untracked players from game rankings
-        if filter_untracked_players:
+        if all_in_game_players_tracked or all_tracked_players_in_game or filter_untracked:
             player_names = set([player.name for _, player in self._players.items()])
-            self._games = GameFactory._filter_untracked(self._games, player_names,
-                                                        strict_filter=strict_filter)
+            self._games = GameFactory._filter(self._games, player_names,
+                                              all_in_game_players_tracked,
+                                              all_tracked_players_in_game,
+                                              filter_untracked)
 
         # Sort games by when they occurred
         if time_sort:
@@ -60,37 +71,44 @@ class GameFactory:
         return self._games
 
     @classmethod
-    def _filter_untracked(cls,
-                          games,
-                          player_names,
-                          strict_filter=True):
+    def _filter(cls,
+                games,
+                player_names,
+                all_in_game_players_tracked,
+                all_tracked_players_in_game,
+                filter_untracked):
         """
         Get a list of games where the rankings only include players from a given set.
 
         :param player_names: Players to keep in rankings.
-        :param strict_filter: Filter out those games that contain non-tracked players.
+        :param all_in_game_players_tracked: Filter out games where not all players are tracked.
+        :param all_tracked_players_in_game: Filter out games where not all tracked players are playing.
+        :param filter_untracked: Filter out untracked players from rankings.
         """
-        tracked_games = []
+        tracked_set = set(player_names)
+
+        filtered_games = []
         for game in games:
-            n_players = len(game.ranking)
-            n_game_tracked = len(player_names.intersection(game.ranking))
+            in_game_set = set(game.ranking)
 
-            # If strict, filter out all games that have any untracked players
-            if strict_filter and n_game_tracked != n_players:
+            if all_tracked_players_in_game and len(tracked_set - in_game_set) != 0:
                 continue
 
-            # Filter out all games where only one player is tracked
-            if n_game_tracked < 2:
+            if all_in_game_players_tracked and len(in_game_set - tracked_set) != 0:
                 continue
 
-            game.ranking = [player for player in game.ranking if player in player_names]
-            tracked_games.append(game)
-        return tracked_games
+            if filter_untracked:
+                game.ranking = [name for name in game.ranking if name in tracked_set]
+                if len(game.ranking) < 2:
+                    continue
+
+            filtered_games.append(game)
+        return filtered_games
 
     @classmethod
-    def _pull_replays(cls, username, page_size, max_pages, use_cache):
+    def _pull_games(cls, username, page_size, max_pages, use_cache, cache_dir):
         username_hash = hashlib.sha1(username.encode('UTF-8')).hexdigest()
-        cache_file = f'cache/user-games-{username_hash}.json'
+        cache_file = os.path.join(cache_dir, f'user-games-{username_hash}.json')
         if use_cache and os.path.exists(cache_file):
             with open(cache_file, 'r') as f:
                 return json.load(f)
@@ -109,8 +127,8 @@ class GameFactory:
             if len(page_game_dicts) < page_size:
                 break
 
-        if not os.path.exists('cache'):
-            os.makedirs('cache')
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
         with open(cache_file, 'w') as f:
             json.dump(game_dicts, f)
         return game_dicts
@@ -130,7 +148,7 @@ class GameFactory:
             name = self._players[username].name if username in self._players else username
             ranking.append(name)
 
-        # There are actually two steps per turn
-        n_turns = game_dict[_GameConstants._TURNS] / 2
+        # The website will show half this number
+        n_turns = game_dict[_GameConstants._TURNS]
 
         return Game(game_id, game_type, game_time, ranking, n_turns)

@@ -38,7 +38,7 @@ def print_stats(games):
     print_sorted_dict(fprw, invert=True, title='Average First Place Win Rate')
 
 
-def get_cumulative_ranks_df(games):
+def get_cumulative_ranks_df(games, rolling_average_n=None):
     results = []
     rank_map = dict()
     for game_number, game in enumerate(games):
@@ -46,30 +46,73 @@ def get_cumulative_ranks_df(games):
         for rank, player in enumerate(game.ranking):
             if player not in rank_map:
                 rank_map[player] = []
-            rank_map[player].append(rank / (len(game.ranking) - 1))
+            normalized_rank = rank / (len(game.ranking) - 1)
+            rank_map[player].append(normalized_rank)
 
         for player, ranks in rank_map.items():
+            discounted_ranks = ranks if rolling_average_n is None else ranks[-rolling_average_n:]
             result = {
                 'Game Number': game_number,
                 'Player': player,
-                'Average Normalized Rank': sum(ranks) / len(ranks),
+                'Average Normalized Rank': sum(discounted_ranks) / len(discounted_ranks),
             }
             results.append(result)
     return pd.DataFrame(results)
 
 
-def plot_cumulative_ranks(games):
-    df = get_cumulative_ranks_df(games)
+def plot_cumulative_ranks(games, rolling_average_n=None):
+    df = get_cumulative_ranks_df(games, rolling_average_n=rolling_average_n)
     sns.lineplot(x='Game Number', y='Average Normalized Rank', hue='Player', data=df)
     plt.show()
 
 
-if __name__ == '__main__':
-    tracked_players = [Players.CHRIS, Players.JASON, Players.YUKI,
-                       Players.ROBERT, Players.KEVIN, Players.MAX]
+def get_1v1_encoded_df(games):
+    players = list(set([player for game in games for player in game.ranking]))
 
-    factory = GameFactory(tracked_players)
-    games = factory.get_games(game_type=Game.TYPE_CUSTOM, use_cache=True)
+    results = []
+    for game in games:
+        for winner_i in range(len(game.ranking)):
+            for loser_i in range(winner_i + 1, len(game.ranking)):
+                winner = game.ranking[winner_i]
+                loser = game.ranking[loser_i]
+
+                result = []
+                for player in players:
+                    if player == winner:
+                        result.append(1)
+                    elif player == loser:
+                        result.append(-1)
+                    else:
+                        result.append(0)
+                results.append(result)
+    return pd.DataFrame(results, columns=players)
+
+
+if __name__ == '__main__':
+    # tracked_players = [Players.CHRIS, Players.HIROTO,
+    #                    Players.JACK, Players.JASON, Players.JONATHAN,
+    #                    Players.KEVIN, Players.LEXI, Players.MAX,
+    #                    Players.MIKE, Players.ROBERT, Players.RYAN, Players.YUKI]
+    tracked_players = [Players.CHRIS, Players.JASON, Players.YUKI,
+                       Players.ROBERT, Players.KEVIN, Players.MAX,
+                       Players.HIROTO]
+    # tracked_players = [Players.CHRIS, Players.HIROTO, Players.MAX]
+    # tracked_players = [Players.CHRIS, Players.KEVIN, Players.YUKI]
+    # tracked_players = [Players.CHRIS, Players.MAX]
+
+    game_factory = GameFactory(tracked_players, use_cache=True)
+    games = game_factory.get_games(game_type=Game.TYPE_CUSTOM,
+                                   all_in_game_players_tracked=False,
+                                   all_tracked_players_in_game=False,
+                                   filter_untracked=True)
+
+    if len(games) == 0:
+        raise ValueError("No games found matching filter criteria")
+
+    print(f"Found {len(games)} games")
+    for game in games:
+        print(game)
 
     print_stats(games)
-    plot_cumulative_ranks(games)
+    rolling_average_n = len(games) // 10
+    plot_cumulative_ranks(games, rolling_average_n=rolling_average_n)

@@ -1,5 +1,5 @@
 class Game:
-    __slots__ = 'game_id', 'game_type', 'game_time', 'ranking', 'n_turns'
+    __slots__ = 'game_id', 'game_type', 'game_time', 'ranking', 'n_turns', 'replay'
 
     TYPE_1v1 = '1v1'
     TYPE_2v2 = '2v2'
@@ -12,6 +12,9 @@ class Game:
         self.game_time = game_time
         self.ranking = ranking
         self.n_turns = n_turns
+
+    def add_replay(self, replay):
+        self.replay = replay
 
     def __repr__(self):
         return (f"Game[id={self.game_id}, datetime={self.game_time}, type={self.game_type}, "
