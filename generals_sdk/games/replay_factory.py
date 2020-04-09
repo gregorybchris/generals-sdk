@@ -68,8 +68,7 @@ class ReplayFactory:
 
     @classmethod
     def _decode_replay(cls, game_id, cache_dir):
-        # TODO: Update this path based on the Python path
-        convert_script = 'conversion/convert-replay.js'
+        convert_script = os.path.join(os.path.dirname(__file__), '../conversion/convert-replay.js')
         in_file = os.path.join(cache_dir, f'{game_id}.gior')
         out, err = ReplayFactory.run_command(['node', convert_script, in_file])
         if len(err) > 0:
