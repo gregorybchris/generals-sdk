@@ -1,12 +1,14 @@
-# Generals Game Data Analysis
+# SDK for Accessing Generals Data
 
-## Environment Setup
+## Installation
 
 ```bash
-pip install -r requirements.txt
+git clone git@github.com:gregorybchris/generals-sdk.git
+cd generals-sdk
+pip install -e .
 ```
 
-## Interface Usage
+## Usage
 
 ```python
 from generals_sdk.games.game import Game

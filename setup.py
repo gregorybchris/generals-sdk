@@ -13,7 +13,7 @@ setup(
     description='SDK for accessing game data from Generals.io.',
     author='Chris Gregory',
     author_email='christopher.b.gregory@gmail.com',
-    url='https://github.com/gregorybchris/generals',
+    url='https://github.com/gregorybchris/generals-sdk',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     keywords=['generals', 'game', 'sdk'],
