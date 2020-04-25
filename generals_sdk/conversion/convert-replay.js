@@ -53,9 +53,9 @@ function parseArgs() {
 	else if (args.length == 3) {
 		inFilepath = args[2]
 		if (inFilepath.endsWith('.gior'))
-			outFilepath = `${inFilepath.substring(0, inFilepath.length - 5)}.gioreplay`
+			outFilepath = `${inFilepath.substring(0, inFilepath.length - 5)}.json`
 		else
-			outFilepath = `${inFilepath}.gioreplay`
+			outFilepath = `${inFilepath}.json`
 	}
 	else if (args.length == 4) {
 		inFilepath = args[2]
@@ -72,9 +72,9 @@ let input = fs.readFileSync(inFilepath)
 
 try {
     let replay = deserialize(input)
-	fs.writeFileSync(outFilepath, JSON.stringify(replay))
+	fs.writeFileSync(outFilepath, JSON.stringify(replay, null, 4))
 	console.log(`Successfully converted ${inFilepath} to ${outFilepath}`)
 }
 catch(e) {
-	console.error(`Failed to convert ${inFilepath} to .gioreplay format`, e)
+	console.error(`Failed to convert ${inFilepath} to JSON`, e)
 }

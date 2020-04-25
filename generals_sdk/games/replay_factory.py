@@ -15,6 +15,9 @@ class _ReplayConstants:
     _CITIES = 'cities'
     _CITY_ARMIES = 'cityArmies'
     _MOUNTAINS = 'mountains'
+    _TEAMS = 'teams'
+    _MAP_TITLE = 'map_title'
+    _AFKS = 'afks'
 
     _MOVES = 'moves'
     _INDEX = 'index'
@@ -31,9 +34,9 @@ class ReplayFactory:
     def __init__(self, cache_dir=DEFAULT_CACHE_DIR):
         self._cache_dir = cache_dir
 
-    def get_replay(self, game):
-        ReplayFactory._pull_replay(game.game_id, self._cache_dir)
-        replay_data = ReplayFactory._decode_replay(game.game_id, self._cache_dir)
+    def get_replay(self, game_id):
+        ReplayFactory._pull_replay(game_id, self._cache_dir)
+        replay_data = ReplayFactory._decode_replay(game_id, self._cache_dir)
 
         version = replay_data[_ReplayConstants._VERSION]
         width = replay_data[_ReplayConstants._WIDTH]
@@ -50,8 +53,12 @@ class ReplayFactory:
         city_armies = replay_data[_ReplayConstants._CITY_ARMIES]
         mountains = replay_data[_ReplayConstants._MOUNTAINS]
         moves = replay_data[_ReplayConstants._MOVES]
+        teams = replay_data[_ReplayConstants._TEAMS]
+        map_title = replay_data[_ReplayConstants._MAP_TITLE]
+        afks = replay_data[_ReplayConstants._AFKS]
 
-        return Replay(version, width, height, usernames, generals, cities, city_armies, mountains, moves)
+        return Replay(version, width, height, usernames, generals, cities,
+                      city_armies, mountains, moves, teams, map_title, afks)
 
     @staticmethod
     def clean_stream(stream, encoding='UTF-8'):
@@ -68,14 +75,18 @@ class ReplayFactory:
 
     @classmethod
     def _decode_replay(cls, game_id, cache_dir):
+        cache_file = os.path.join(cache_dir, f'{game_id}.json')
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+
         convert_script = os.path.join(os.path.dirname(__file__), '../conversion/convert-replay.js')
         in_file = os.path.join(cache_dir, f'{game_id}.gior')
         out, err = ReplayFactory.run_command(['node', convert_script, in_file])
         if len(err) > 0:
             raise OSError(err)
 
-        out_file = os.path.join(cache_dir, f'{game_id}.gioreplay')
-        with open(out_file, 'r') as f:
+        with open(cache_file, 'r') as f:
             return json.load(f)
 
     @classmethod

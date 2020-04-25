@@ -8,7 +8,10 @@ class Replay:
                  cities,
                  city_armies,
                  mountains,
-                 moves):
+                 moves,
+                 teams,
+                 map_title,
+                 afks):
         self.version = version
         self.width = width
         self.height = height
@@ -18,3 +21,9 @@ class Replay:
         self.city_armies = city_armies
         self.mountains = mountains
         self.moves = moves
+        self.teams = teams
+        self.map_title = map_title
+        self.afks = afks
+
+    def __repr__(self):
+        return (f"Replay[version={self.version}, usernames={self.usernames}, teams={self.teams}]")

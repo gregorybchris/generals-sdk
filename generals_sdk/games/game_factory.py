@@ -41,7 +41,8 @@ class GameFactory:
                   time_sort=True,
                   all_in_game_players_tracked=False,
                   all_tracked_players_in_game=False,
-                  filter_untracked=False):
+                  filter_untracked=False,
+                  replace_username=True):
         # Get a unique list of games over all tracked players
         game_map = dict()
         for username in self._players:
@@ -49,7 +50,7 @@ class GameFactory:
                                                         self._page_size, self._max_pages,
                                                         self._use_cache, self._cache_dir)
             for game_dict in player_game_dicts:
-                game = self._create_game(game_dict)
+                game = self._create_game(game_dict, replace_username=replace_username)
                 game_map[game.game_id] = game
         self._games = list(game_map.values())
 
@@ -133,7 +134,7 @@ class GameFactory:
             json.dump(game_dicts, f)
         return game_dicts
 
-    def _create_game(self, game_dict):
+    def _create_game(self, game_dict, replace_username=True):
         game_id = game_dict[_GameConstants._ID]
         game_type = game_dict[_GameConstants._TYPE]
 
@@ -145,7 +146,10 @@ class GameFactory:
         ranking = []
         for ranking_record in game_dict[_GameConstants._RANKING]:
             username = ranking_record[_GameConstants._USERNAME]
-            name = self._players[username].name if username in self._players else username
+            if replace_username and username in self._players:
+                name = self._players[username].name
+            else:
+                name = username
             ranking.append(name)
 
         # The website will show half this number
