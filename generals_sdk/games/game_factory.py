@@ -145,6 +145,9 @@ class GameFactory:
         # Discard number of stars a player has, no one cares
         ranking = []
         for ranking_record in game_dict[_GameConstants._RANKING]:
+            # This is a rare case where the name is missing from the ranking
+            if _GameConstants._USERNAME not in ranking_record:
+                continue
             username = ranking_record[_GameConstants._USERNAME]
             if replace_username and username in self._players:
                 name = self._players[username].name
