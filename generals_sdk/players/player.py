@@ -7,3 +7,6 @@ class Player:
 
         self.name = name
         self.usernames = usernames
+
+    def __repr__(self):
+        return f"Player[name={self.name}, usernames=[{self.usernames}]]"
