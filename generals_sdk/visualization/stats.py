@@ -1,11 +1,13 @@
 from trueskill import Rating, rate
 
 
-def _print_sorted_dict(d, invert=False, title=None):
+def _print_sorted_dict(d, invert=False, title=None, key=None):
+    if key is None:
+        key = lambda x: x
     if title is not None:
         print('\n' + title)
     multiplier = -1 if invert else 1
-    sorted_d = sorted(list(d.items()), key=lambda p: multiplier * p[1])
+    sorted_d = sorted(list(d.items()), key=lambda p: multiplier * key(p[1]))
     for k, v in sorted_d:
         print(f"  {k}: {v}")
 
@@ -21,7 +23,7 @@ def _get_trueskill(games):
         updated_team_ratings = rate(team_ratings, ranks=team_ranks)
         updated_ratings = dict(zip(game.ranking, [r[0] for r in updated_team_ratings]))
         trueskill_ratings.update(updated_ratings)
-    ratings = {player: rating.mu for player, rating in trueskill_ratings.items()}
+    ratings = {player: (rating.mu, rating.sigma) for player, rating in trueskill_ratings.items()}
     return ratings
 
 
@@ -43,4 +45,4 @@ def print_stats(games):
     _print_sorted_dict(fprw, invert=True, title='Average First Place Win Rate')
 
     trueskill = _get_trueskill(games)
-    _print_sorted_dict(trueskill, title='TrueSkill Ratings')
+    _print_sorted_dict(trueskill, invert=True, title='TrueSkill Ratings', key=lambda p: p[0])
